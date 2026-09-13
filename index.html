@@ -18,7 +18,7 @@
   <section class="view" id="view-home">
     <div class="top-header" id="topHeader">
       <div class="top-banner" id="topBanner">
-        <img src="https://i.ibb.co/b4XkfrW/Gray-Pink-Modern-New-Collection-Sale-Website-Shop-Blog-Banner.png" alt="banner" id="topBannerImg" referrerpolicy="no-referrer">
+        <img src="https://i.ibb.co/b4XkfrW/Gray-Pink-Modern-New-Collection-Sale-Website-Shop-Blog-Banner.png" alt="banner" id="topBannerImg" width="800" height="190" decoding="async" fetchpriority="high" referrerpolicy="no-referrer" onload="handleImgLoad(this)" onerror="handleImgError(this)">
       </div>
       <div class="action-bar">
         <div class="brand">
@@ -316,9 +316,9 @@
 </div>
 
 <!-- ===== Firebase SDK (compat build — plain <script> tags, no bundler needed) ===== -->
-<script src="https://www.gstatic.com/firebasejs/12.17.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/12.17.1/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/12.17.1/firebase-database-compat.js"></script>
-<script src="script.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.17.1/firebase-app-compat.js" defer></script>
+<script src="https://www.gstatic.com/firebasejs/12.17.1/firebase-auth-compat.js" defer></script>
+<script src="https://www.gstatic.com/firebasejs/12.17.1/firebase-database-compat.js" defer></script>
+<script src="script.js" defer></script>
 </body>
 </html>
