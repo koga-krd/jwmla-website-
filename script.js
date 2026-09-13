@@ -10,6 +10,14 @@
     el.style.objectFit = 'contain';
     el.style.padding = '14%';
     el.style.opacity = '1';
+    el.classList.add('loaded');
+  };
+
+  /* Fades an image in (and lets its skeleton/placeholder background show
+     through) only once the real file has actually finished decoding —
+     keeps card text/price rendering instantly while the image streams in. */
+  window.handleImgLoad = function(el){
+    el.classList.add('loaded');
   };
 
   /* ============ imgbb / ibb.co link normalizer ============ */
@@ -309,7 +317,7 @@
     listWrap.innerHTML = cart.map(item => `
       <div class="cart-item-row">
         <div class="cart-item-thumb">
-          <img src="${item.image ? escapeHtml(item.image) : PLACEHOLDER_IMG}" referrerpolicy="no-referrer" onerror="handleImgError(this)">
+          <img src="${item.image ? escapeHtml(item.image) : PLACEHOLDER_IMG}" width="58" height="58" loading="lazy" decoding="async" referrerpolicy="no-referrer" onload="handleImgLoad(this)" onerror="handleImgError(this)">
         </div>
         <div class="cart-item-details">
           <div class="cart-item-name">${escapeHtml(item.name)}</div>
@@ -540,7 +548,7 @@
     return `
     <div class="card ${p.section === 'offers' ? 'is-offer' : ''}" data-view="${p.id}">
       <div class="card-media">
-        <img src="${img}" alt="${escapeHtml(p.name)}" loading="lazy" referrerpolicy="no-referrer" class="${p.outOfStock ? 'dimmed' : ''}" onerror="handleImgError(this)">
+        <img src="${img}" alt="${escapeHtml(p.name)}" width="300" height="400" loading="lazy" decoding="async" referrerpolicy="no-referrer" class="${p.outOfStock ? 'dimmed' : ''}" onload="handleImgLoad(this)" onerror="handleImgError(this)">
         ${oosOverlay}
       </div>
       <div class="card-body">
@@ -644,7 +652,7 @@
     const prevBtn = document.getElementById('detailPrevBtn');
     const nextBtn = document.getElementById('detailNextBtn');
     const slides = imgs.length ? imgs : [''];
-    track.innerHTML = slides.map(src => `<div class="slide"><img src="${escapeHtml(src)}" referrerpolicy="no-referrer" onerror="handleImgError(this)"></div>`).join('');
+    track.innerHTML = slides.map((src, i) => `<div class="slide"><img src="${escapeHtml(src)}" width="600" height="600" loading="${i === 0 ? 'eager' : 'lazy'}" decoding="async" referrerpolicy="no-referrer" onload="handleImgLoad(this)" onerror="handleImgError(this)"></div>`).join('');
     dotsWrap.innerHTML = slides.length > 1
       ? slides.map((_, i) => `<span class="detail-dot ${i === 0 ? 'active' : ''}"></span>`).join('')
       : '';
@@ -716,7 +724,7 @@
     const list = (urls && urls.length) ? urls.slice() : [''];
     wrap.innerHTML = list.map((url) => `
       <div class="image-input-row">
-        <div class="image-thumb"><img src="${url ? escapeHtml(url) : PLACEHOLDER_IMG}" referrerpolicy="no-referrer" onerror="handleImgError(this)"></div>
+        <div class="image-thumb"><img src="${url ? escapeHtml(url) : PLACEHOLDER_IMG}" width="38" height="38" loading="lazy" decoding="async" referrerpolicy="no-referrer" onload="handleImgLoad(this)" onerror="handleImgError(this)"></div>
         <input type="url" class="image-url-input" placeholder="https://i.ibb.co/xxxx.jpg" value="${escapeHtml(url)}">
         <button type="button" class="image-remove-btn" data-remove-image aria-label="remove image">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
@@ -750,7 +758,7 @@
     const row = document.createElement('div');
     row.className = 'image-input-row';
     row.innerHTML = `
-      <div class="image-thumb"><img src="${PLACEHOLDER_IMG}"></div>
+      <div class="image-thumb"><img src="${PLACEHOLDER_IMG}" width="38" height="38" decoding="async"></div>
       <input type="url" class="image-url-input" placeholder="https://i.ibb.co/xxxx.jpg" value="">
       <button type="button" class="image-remove-btn" data-remove-image aria-label="remove image">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
