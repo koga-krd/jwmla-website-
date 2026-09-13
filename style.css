@@ -187,11 +187,50 @@ img{max-width:100%;display:block;}
   box-shadow:var(--shadow);
   cursor:pointer;
 }
+/* ===== Skeleton loaders / fade-in (perf: instant layout, image fades in when ready) =====
+   Explicit width/height + CSS aspect-ratio on every container above means the
+   card, thumbnail, and carousel boxes reserve their final size the instant
+   they're painted — before any image byte has arrived — so nothing shifts
+   (CLS) as real images pop in behind them. */
+@keyframes skeletonShimmer{
+  0%{background-position:200% 0;}
+  100%{background-position:-200% 0;}
+}
+.card-media,
+.cart-item-thumb,
+.detail-track .slide,
+.top-banner{
+  background:linear-gradient(110deg, var(--cream-2) 30%, #F8F2E4 50%, var(--cream-2) 70%);
+  background-size:200% 100%;
+  animation:skeletonShimmer 1.6s ease-in-out infinite;
+}
+.card-media img,
+.cart-item-thumb img,
+.detail-track .slide img,
+#topBannerImg{
+  opacity:0;
+  transition:opacity .3s ease;
+}
+.card-media img.loaded,
+.cart-item-thumb img.loaded,
+.detail-track .slide img.loaded,
+#topBannerImg.loaded{
+  opacity:1;
+}
+/* Once an image has painted, its parent no longer needs the shimmer running
+   underneath — stopping it avoids wasted paint work on low-end phones. */
+.card-media:has(img.loaded),
+.cart-item-thumb:has(img.loaded),
+.detail-track .slide:has(img.loaded),
+.top-banner:has(#topBannerImg.loaded){
+  animation:none;
+  background:var(--cream-2);
+}
+
 .card-media{
   position:relative;
   width:100%;
   aspect-ratio:3/4;
-  background:var(--cream-2);
 }
 .card-media img{width:100%;height:100%;object-fit:cover;display:block;}
 .card-body{padding:8px 9px 11px;}
@@ -432,7 +471,6 @@ img{max-width:100%;display:block;}
 .detail-track .slide{
   flex:0 0 100%;
   scroll-snap-align:start;
-  background:var(--cream-2);
 }
 .detail-track .slide img{width:100%;height:100%;object-fit:cover;}
 .detail-dots{
@@ -629,7 +667,6 @@ img{max-width:100%;display:block;}
   width:58px;height:58px;flex-shrink:0;
   border-radius:10px;
   overflow:hidden;
-  background:var(--cream-2);
 }
 .cart-item-thumb img{width:100%;height:100%;object-fit:cover;}
 .cart-item-details{flex:1;min-width:0;}
