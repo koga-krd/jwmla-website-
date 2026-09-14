@@ -176,16 +176,23 @@ img{max-width:100%;display:block;}
   grid-template-columns:repeat(2,1fr);
   gap:10px;
   padding:12px 12px 20px;
+  background-color:#ffffff;
 }
 @media (min-width:600px){ .grid{grid-template-columns:repeat(3,1fr);} }
 @media (min-width:900px){ .grid{grid-template-columns:repeat(4,1fr);} }
 
 .card{
-  background:#fff;
-  border-radius:14px;
+  background:#ffffff;
+  border:1px solid #000000;
+  border-radius:16px;
   overflow:hidden;
   box-shadow:var(--shadow);
   cursor:pointer;
+  /* Perf: off-screen cards skip layout/paint/style work entirely until they
+     scroll near the viewport. The intrinsic-size guess keeps scrollbar
+     height stable before a card has ever been measured. */
+  content-visibility:auto;
+  contain-intrinsic-size:auto 260px;
 }
 /* ===== Skeleton loaders / fade-in (perf: instant layout, image fades in when ready) =====
    Explicit width/height + CSS aspect-ratio on every container above means the
@@ -196,7 +203,6 @@ img{max-width:100%;display:block;}
   0%{background-position:200% 0;}
   100%{background-position:-200% 0;}
 }
-.card-media,
 .cart-item-thumb,
 .detail-track .slide,
 .top-banner{
@@ -219,7 +225,6 @@ img{max-width:100%;display:block;}
 }
 /* Once an image has painted, its parent no longer needs the shimmer running
    underneath — stopping it avoids wasted paint work on low-end phones. */
-.card-media:has(img.loaded),
 .cart-item-thumb:has(img.loaded),
 .detail-track .slide:has(img.loaded),
 .top-banner:has(#topBannerImg.loaded){
@@ -227,12 +232,28 @@ img{max-width:100%;display:block;}
   background:var(--cream-2);
 }
 
+/* Product image container: always a solid pure white card, per spec —
+   the shimmer for this one runs on a separate overlay layer (below) so the
+   container's own background-color never has to change. */
 .card-media{
   position:relative;
   width:100%;
-  aspect-ratio:3/4;
+  aspect-ratio:1/1;
+  background-color:#ffffff;
+  overflow:hidden;
 }
 .card-media img{width:100%;height:100%;object-fit:cover;display:block;}
+.card-media::before{
+  content:'';
+  position:absolute;inset:0;
+  background:linear-gradient(110deg, #f1f1f1 30%, #fafafa 50%, #f1f1f1 70%);
+  background-size:200% 100%;
+  animation:skeletonShimmer 1.6s ease-in-out infinite;
+  transition:opacity .3s ease;
+}
+.card-media:has(img.loaded)::before{
+  opacity:0;
+}
 .card-body{padding:8px 9px 11px;}
 .card-title{
   font-size:12.5px;
@@ -245,9 +266,31 @@ img{max-width:100%;display:block;}
   overflow:hidden;
   margin-bottom:4px;
 }
+.card-bottom-row{
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:6px;
+}
+.card-price-block{min-width:0;}
 .card-price{font-size:16px;font-weight:800;color:var(--black);}
 .card-price .sym{font-size:11px;font-weight:600;color:var(--muted);margin-right:2px;}
 .card.is-offer .card-price{color:var(--danger-dark);}
+.quick-add-btn{
+  flex-shrink:0;
+  width:38px;height:38px;
+  border-radius:8px;
+  border:none;
+  background:#4c1d95;
+  color:#ffffff;
+  font-size:22px;
+  font-weight:700;
+  line-height:1;
+  display:flex;align-items:center;justify-content:center;
+  padding-bottom:1px; /* optically centers the + glyph */
+}
+.quick-add-btn:active{transform:scale(0.88);}
+.quick-add-btn:disabled{background:#8B8271;opacity:0.5;}
 .card-trend{
   display:block;
   font-size:10px;
@@ -423,15 +466,25 @@ img{max-width:100%;display:block;}
 .btn-danger-outline{border-color:var(--danger-dark);color:var(--danger-dark);}
 
 /* ===== Modal ===== */
+/* Overlay + modal panel animate purely with transform/opacity (GPU-composited,
+   no layout/paint work) so both open AND close are smooth at 60fps — using
+   opacity + pointer-events instead of display:none also means the close
+   transition actually gets to play, instead of vanishing instantly. */
 .overlay{
   position:fixed;inset:0;
   background:rgba(24,20,14,0.55);
-  display:none;
+  display:flex;
   align-items:flex-end;
   justify-content:center;
   z-index:100;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .25s ease;
 }
-.overlay.open{display:flex;}
+.overlay.open{
+  opacity:1;
+  pointer-events:auto;
+}
 @media (min-width:640px){ .overlay{align-items:center;padding:20px;} }
 .modal{
   background:#fff;
@@ -442,10 +495,16 @@ img{max-width:100%;display:block;}
   border-radius:20px 20px 0 0;
   padding:18px;
   position:relative;
-  animation:slideUp .25s ease;
+  transform:translateY(24px);
+  opacity:0;
+  transition:transform .25s ease, opacity .25s ease;
+  will-change:transform, opacity;
+}
+.overlay.open .modal{
+  transform:translateY(0);
+  opacity:1;
 }
 @media (min-width:640px){ .modal{border-radius:20px;} }
-@keyframes slideUp{from{transform:translateY(30px);opacity:0;}to{transform:translateY(0);opacity:1;}}
 .modal-close{
   position:absolute;top:14px;left:14px;z-index:2;
   width:32px;height:32px;
@@ -496,6 +555,43 @@ img{max-width:100%;display:block;}
 .detail-row span:first-child{color:var(--muted);font-weight:600;}
 .detail-row span:last-child{font-weight:700;}
 .detail-desc{margin-top:12px;font-size:13.5px;line-height:1.7;color:var(--text);}
+
+/* ===== Specs / "زانیاری" table (detail view) ===== */
+.specs-section{margin-top:16px;}
+.specs-title{font-size:13.5px;font-weight:800;color:var(--black);margin-bottom:8px;}
+.specs-table{
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:14px;
+  overflow:hidden;
+}
+.specs-row{
+  display:flex;
+  justify-content:space-between;
+  gap:10px;
+  padding:10px 14px;
+  border-bottom:1px solid var(--line);
+  font-size:13px;
+}
+.specs-row:last-child{border-bottom:none;}
+.specs-row:nth-child(even){background:var(--cream);}
+.specs-row .specs-label{color:var(--muted);font-weight:600;flex-shrink:0;}
+.specs-row .specs-value{color:var(--text);font-weight:700;text-align:left;}
+
+/* ===== Dynamic spec inputs (admin form) — mirrors the multi-image rows ===== */
+.spec-inputs{display:flex;flex-direction:column;gap:8px;margin-bottom:8px;}
+.spec-input-row{display:flex;gap:7px;}
+.spec-input-row input{
+  padding:10px 11px;
+  border:1px solid var(--line);
+  border-radius:10px;
+  font-size:13.5px;
+  outline:none;
+  background:var(--cream);
+}
+.spec-input-row input:focus{border-color:var(--black);background:#fff;}
+.spec-input-row .spec-label-input{flex:0 0 38%;}
+.spec-input-row .spec-value-input{flex:1;min-width:0;}
 .btn-add-cart{margin-top:16px;}
 .btn-add-cart-top{margin-top:2px;margin-bottom:14px;}
 .detail-admin-actions{display:flex;gap:9px;margin-top:9px;}
