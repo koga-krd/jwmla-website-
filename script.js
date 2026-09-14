@@ -85,6 +85,7 @@
       formTitleAdd:'زیادکردنی کاڵا', formTitleEdit:'دەستکاریکردنی کاڵا',
       lblImages:'وێنەکانی کاڵا (لینک)', addImageBtn:'+ زیادکردنی وێنەیەکی تر',
       lblName:'ناوی کاڵا', lblCode:'کۆدی کاڵا', lblCompany:'ناوی کۆمپانیا', lblTrend:'جۆری کاڵا (ئۆرجینال / کۆپی / ماستەرکۆپی)',
+      lblSpecs:'زانیاری (وەک: Brand, Color, Warranty, Capacity)', specsTitle:'زانیاری',
       lblCategory:'جۆر / پۆل', lblCategoryHint:'(دەتوانیت چەند پۆلێک هەڵبژێریت)', lblSection:'شوێنی دەرکەوتن',
       optMainText:'بەشی سەرەکی', optOffersText:'بەشی ئۆفەر',
       lblPiece:'نرخی دانه', lblCarton:'نرخی کارتۆن', lblUnits:'ژمارەی دانه له کارتۆنێکدا', lblDesc:'تێبینی / وردەکاری',
@@ -98,7 +99,7 @@
       errorPrefix:'هەڵەیەک ڕوویدا: ',
       addedToCart:'زیادکرا بۆ سەبەتە', allCat:'هەموو', detailAddCartText:'زیادکردن بۆ سەبەتە',
       editBtn:'دەستکاریکردن', deleteBtn:'سڕینەوە',
-      waMsgHeader:'سڵاو، دەمەوێت ئەم کاڵایانە داوا بکەم:', waMsgCode:'کۆد', waMsgName:'ناو', waMsgQty:'دانە',
+      waMsgHeader:'سڵاو، دەمەوێت ئەم کاڵایانە داوا بکەم:', waMsgCode:'کۆد', waMsgName:'ناو', waMsgQty:'دانە', waMsgTotal:'کۆی گشتی',
       nameRequiredMsg:'ناو و نرخی دانه پێویستن', addingPending:'تکایە چاوەڕێ بکە، کاڵاکە هێشتا پاشەکەوت دەکرێت...'
     },
     ar: {
@@ -119,6 +120,7 @@
       formTitleAdd:'إضافة منتج', formTitleEdit:'تعديل المنتج',
       lblImages:'صور المنتج (روابط)', addImageBtn:'+ إضافة صورة أخرى',
       lblName:'اسم المنتج', lblCode:'كود المنتج', lblCompany:'اسم الشركة', lblTrend:'نوع المنتج (أصلي / تقليد / ماستر كوبي)',
+      lblSpecs:'معلومات (Brand, Color, Warranty, Capacity)', specsTitle:'معلومات',
       lblCategory:'الفئة', lblCategoryHint:'(يمكنك اختيار أكثر من فئة)', lblSection:'مكان الظهور',
       optMainText:'الرئيسية', optOffersText:'العروض',
       lblPiece:'سعر القطعة', lblCarton:'سعر الكرتون', lblUnits:'عدد القطع في الكرتون', lblDesc:'ملاحظات / تفاصيل',
@@ -132,7 +134,7 @@
       errorPrefix:'حدث خطأ: ',
       addedToCart:'أُضيف إلى السلة', allCat:'الكل', detailAddCartText:'إضافة إلى السلة',
       editBtn:'تعديل', deleteBtn:'حذف',
-      waMsgHeader:'مرحباً، أريد طلب هذه المنتجات:', waMsgCode:'كود', waMsgName:'اسم', waMsgQty:'عدد',
+      waMsgHeader:'مرحباً، أريد طلب هذه المنتجات:', waMsgCode:'كود', waMsgName:'اسم', waMsgQty:'عدد', waMsgTotal:'الإجمالي',
       nameRequiredMsg:'الاسم وسعر القطعة مطلوبان', addingPending:'يرجى الانتظار، جارٍ حفظ المنتج...'
     },
     en: {
@@ -153,6 +155,7 @@
       formTitleAdd:'Add product', formTitleEdit:'Edit product',
       lblImages:'Product images (links)', addImageBtn:'+ Add another image',
       lblName:'Product name', lblCode:'Product code', lblCompany:'Company name', lblTrend:'Product type (Original / Copy / Master Copy)',
+      lblSpecs:'Specifications (Brand, Color, Warranty, Capacity)', specsTitle:'Information',
       lblCategory:'Category', lblCategoryHint:'(you can pick more than one)', lblSection:'Show in',
       optMainText:'Main', optOffersText:'Offers',
       lblPiece:'Piece price', lblCarton:'Carton price', lblUnits:'Pieces per carton', lblDesc:'Notes / details',
@@ -166,7 +169,7 @@
       errorPrefix:'An error occurred: ',
       addedToCart:'Added to cart', allCat:'All', detailAddCartText:'Add to cart',
       editBtn:'Edit', deleteBtn:'Delete',
-      waMsgHeader:'Hello, I would like to order these products:', waMsgCode:'Code', waMsgName:'Name', waMsgQty:'Qty',
+      waMsgHeader:'Hello, I would like to order these products:', waMsgCode:'Code', waMsgName:'Name', waMsgQty:'Qty', waMsgTotal:'Total',
       nameRequiredMsg:'Name and piece price are required', addingPending:'Please wait, the product is still being saved...'
     }
   };
@@ -208,6 +211,16 @@
       [arr[i], arr[j]] = [arr[j], arr[i]];
     }
     return arr;
+  }
+  /* Perf: collapses a burst of rapid calls (e.g. every keystroke while
+     typing in a search box) into a single call after the pause, so the
+     grid doesn't re-filter/re-render on every character. */
+  function debounce(fn, delay){
+    let timer = null;
+    return function(...args){
+      clearTimeout(timer);
+      timer = setTimeout(() => fn.apply(this, args), delay);
+    };
   }
 
   /* ============ Price helpers ============ */
@@ -337,8 +350,12 @@
   document.getElementById('cartOrderBtnPage').addEventListener('click', () => {
     if(cart.length === 0) return;
     const dict = T[lang];
-    const lines = cart.map(i => `${dict.waMsgCode}: ${i.code} - ${dict.waMsgName}: ${i.name} (${dict.waMsgQty}: ${i.qty})`);
-    const message = dict.waMsgHeader + '\n' + lines.join('\n');
+    const lines = cart.map(i => {
+      const subtotal = (Number(i.price) || 0) * i.qty;
+      return `${dict.waMsgCode}: ${i.code} - ${dict.waMsgName}: ${i.name} (${dict.waMsgQty}: ${i.qty}) — ${fmt(subtotal)} ${dict.currency}`;
+    });
+    const totalLine = `${dict.waMsgTotal}: ${fmt(cartTotalAmount())} ${dict.currency}`;
+    const message = dict.waMsgHeader + '\n' + lines.join('\n') + '\n\n' + totalLine;
     const url = 'https://wa.me/' + getWhatsappNumber() + '?text=' + encodeURIComponent(message);
     window.open(url, '_blank', 'noopener');
   });
@@ -448,6 +465,8 @@
     setText('lblCode', dict.lblCode);
     setText('lblCompany', dict.lblCompany);
     setText('lblTrend', dict.lblTrend);
+    setText('lblSpecs', dict.lblSpecs);
+    setText('detailSpecsTitle', dict.specsTitle);
     document.getElementById('lblCategory').innerHTML = dict.lblCategory + ' <span class="hint" id="lblCategoryHint">' + dict.lblCategoryHint + '</span>';
     setText('lblSection', dict.lblSection);
     setText('optMainText', dict.optMainText);
@@ -548,19 +567,35 @@
     return `
     <div class="card ${p.section === 'offers' ? 'is-offer' : ''}" data-view="${p.id}">
       <div class="card-media">
-        <img src="${img}" alt="${escapeHtml(p.name)}" width="300" height="400" loading="lazy" decoding="async" referrerpolicy="no-referrer" class="${p.outOfStock ? 'dimmed' : ''}" onload="handleImgLoad(this)" onerror="handleImgError(this)">
+        <img src="${img}" alt="${escapeHtml(p.name)}" width="300" height="300" loading="lazy" decoding="async" referrerpolicy="no-referrer" class="${p.outOfStock ? 'dimmed' : ''}" onload="handleImgLoad(this)" onerror="handleImgError(this)">
         ${oosOverlay}
       </div>
       <div class="card-body">
         <div class="card-title">${escapeHtml(p.name)}</div>
-        <div class="card-price"><span class="sym">${dict.currency}</span>${priceDisplay(p.piecePrice)}</div>
-        ${trendHtml}
+        <div class="card-bottom-row">
+          <div class="card-price-block">
+            <div class="card-price"><span class="sym">${dict.currency}</span>${priceDisplay(p.piecePrice)}</div>
+            ${trendHtml}
+          </div>
+          <button type="button" class="quick-add-btn" data-quickadd="${p.id}" aria-label="add to cart" ${p.outOfStock ? 'disabled' : ''}>+</button>
+        </div>
       </div>
     </div>`;
   }
   function bindCardClicks(gridEl){
     gridEl.querySelectorAll('[data-view]').forEach(el => {
       el.addEventListener('click', () => openDetail(el.getAttribute('data-view')));
+    });
+    // Quick add-to-cart: stopPropagation keeps this from also bubbling up to
+    // the card's own [data-view] click handler and opening the detail modal.
+    gridEl.querySelectorAll('[data-quickadd]').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const p = productsCache.find(x => x.id === btn.getAttribute('data-quickadd'));
+        if(!p || p.outOfStock) return;
+        addToCart(p);
+        showToast(T[lang].addedToCart);
+      });
     });
   }
   function emptyStateHtml(msg){
@@ -584,9 +619,10 @@
     grid.innerHTML = list.map(cardHtml).join('');
     bindCardClicks(grid);
   }
+  const debouncedRenderHome = debounce(() => renderHome(), 250);
   document.getElementById('searchInputHome').addEventListener('input', (e) => {
     homeFilter.term = e.target.value;
-    renderHome();
+    debouncedRenderHome();
   });
 
   function renderOffers(){
@@ -620,9 +656,10 @@
     grid.innerHTML = list.map(cardHtml).join('');
     bindCardClicks(grid);
   }
+  const debouncedRenderSearchPage = debounce(() => renderSearchPage(), 250);
   document.getElementById('searchInputPage').addEventListener('input', (e) => {
     searchFilter.term = e.target.value;
-    renderSearchPage();
+    debouncedRenderSearchPage();
   });
   document.querySelectorAll('#view-search .sort-opt[data-sort]').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -687,6 +724,21 @@
     document.getElementById('detailCompany').textContent = p.company || dict.noValue;
     document.getElementById('detailCat').textContent = categoryDisplayNames(p);
     document.getElementById('detailDesc').textContent = p.desc || '';
+
+    const specsSection = document.getElementById('detailSpecsSection');
+    const specsTable = document.getElementById('detailSpecsTable');
+    const specs = Array.isArray(p.specs) ? p.specs.filter(s => s && s.label && s.value) : [];
+    if(specs.length){
+      specsTable.innerHTML = specs.map(s => `
+        <div class="specs-row">
+          <span class="specs-label">${escapeHtml(s.label)}</span>
+          <span class="specs-value">${escapeHtml(s.value)}</span>
+        </div>`).join('');
+      specsSection.hidden = false;
+    } else {
+      specsTable.innerHTML = '';
+      specsSection.hidden = true;
+    }
 
     const oosBadge = document.getElementById('detailOosBadge');
     const addCartBtn = document.getElementById('detailAddCart');
@@ -772,6 +824,56 @@
       .filter(Boolean);
   }
 
+  /* ============ Admin: dynamic spec (attribute) rows — Brand, Color, Warranty, etc. ============ */
+  function renderSpecInputs(specs){
+    const wrap = document.getElementById('specInputs');
+    const list = (specs && specs.length) ? specs : [{ label:'', value:'' }];
+    wrap.innerHTML = list.map(s => `
+      <div class="spec-input-row">
+        <input type="text" class="spec-label-input" placeholder="Brand / Color / Warranty..." value="${escapeHtml(s.label || '')}">
+        <input type="text" class="spec-value-input" placeholder="Samsung / Black / 2 years..." value="${escapeHtml(s.value || '')}">
+        <button type="button" class="image-remove-btn" data-remove-spec aria-label="remove spec">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+        </button>
+      </div>`).join('');
+    bindSpecInputEvents();
+  }
+  function bindSpecInputEvents(){
+    const wrap = document.getElementById('specInputs');
+    wrap.querySelectorAll('[data-remove-spec]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const rows = wrap.querySelectorAll('.spec-input-row');
+        if(rows.length <= 1){
+          wrap.querySelectorAll('input').forEach(i => i.value = '');
+          return;
+        }
+        btn.closest('.spec-input-row').remove();
+      });
+    });
+  }
+  document.getElementById('addSpecBtn').addEventListener('click', () => {
+    const wrap = document.getElementById('specInputs');
+    const row = document.createElement('div');
+    row.className = 'spec-input-row';
+    row.innerHTML = `
+      <input type="text" class="spec-label-input" placeholder="Brand / Color / Warranty..." value="">
+      <input type="text" class="spec-value-input" placeholder="Samsung / Black / 2 years..." value="">
+      <button type="button" class="image-remove-btn" data-remove-spec aria-label="remove spec">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6L6 18M6 6l12 12"/></svg>
+      </button>`;
+    wrap.appendChild(row);
+    bindSpecInputEvents();
+  });
+  function getFormSpecs(){
+    const rows = Array.from(document.querySelectorAll('.spec-input-row'));
+    return rows
+      .map(row => ({
+        label: row.querySelector('.spec-label-input').value.trim(),
+        value: row.querySelector('.spec-value-input').value.trim()
+      }))
+      .filter(s => s.label && s.value);
+  }
+
   /* ============ Admin: category chips in form ============ */
   function renderFormCategoryChips(selected){
     selected = selected || [];
@@ -799,6 +901,7 @@
     form.reset();
     renderImageInputs([]);
     renderFormCategoryChips([]);
+    renderSpecInputs([]);
     setSection('main');
 
     if(editingId){
@@ -811,6 +914,7 @@
         document.getElementById('fTrend').value = p.trend || '';
         const selCats = p.categories && p.categories.length ? p.categories : (p.category ? [p.category] : []);
         renderFormCategoryChips(selCats);
+        renderSpecInputs(p.specs || []);
         setSection(p.section === 'offers' ? 'offers' : 'main');
         document.getElementById('fPiece').value = p.piecePrice ?? '';
         document.getElementById('fCarton').value = p.cartonPrice ?? '';
@@ -880,6 +984,7 @@
       code: document.getElementById('fCode').value.trim(),
       company: document.getElementById('fCompany').value.trim(),
       trend: document.getElementById('fTrend').value.trim(),
+      specs: getFormSpecs(),
       categories: getSelectedFormCategories(),
       section: section,
       piecePrice: piece,
