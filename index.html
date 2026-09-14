@@ -215,6 +215,11 @@
     <div class="detail-row"><span id="lblCatD">جۆر</span><span id="detailCat"></span></div>
     <div class="detail-desc" id="detailDesc"></div>
 
+    <div class="specs-section" id="detailSpecsSection" hidden>
+      <div class="specs-title" id="detailSpecsTitle">زانیاری</div>
+      <div class="specs-table" id="detailSpecsTable"></div>
+    </div>
+
     <div class="detail-admin-actions" id="detailAdminActions" hidden>
       <button type="button" class="btn-outline" id="detailEditBtn">دەستکاریکردن</button>
       <button type="button" class="btn-outline btn-danger-outline" id="detailDeleteBtn">سڕینەوە</button>
@@ -281,6 +286,12 @@
       <div class="field">
         <label id="lblTrend">جۆری کاڵا (ئۆرجینال / کۆپی / ماستەرکۆپی)</label>
         <input type="text" id="fTrend" placeholder="Original / Copy / Master Copy">
+      </div>
+
+      <div class="field">
+        <label id="lblSpecs">زانیاری (وەک: Brand, Color, Warranty, Capacity)</label>
+        <div id="specInputs" class="spec-inputs"></div>
+        <button type="button" class="btn-outline btn-add-image" id="addSpecBtn">+ زیادکردنی تایبەتمەندی</button>
       </div>
 
       <div class="field">
